@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.1)
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib;${CppWrapper_DIR}/../")
 
-list(APPEND CMAKE_CXX_FLAGS "-std=c++11")
+list(APPEND CMAKE_CXX_FLAGS "-std=c++11 -march=native")
 
 find_package(CppWrapper)
 
