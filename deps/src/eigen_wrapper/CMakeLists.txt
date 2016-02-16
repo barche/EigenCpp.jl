@@ -12,6 +12,7 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}/../../src/eigen/include/eigen3"
 
 add_library(eigen_wrapper SHARED wrap_eigen.cpp)
 target_link_libraries(eigen_wrapper CppWrapper::cpp_wrapper)
+target_compile_features(eigen_wrapper PRIVATE cxx_generic_lambdas)
 
 install(TARGETS
   eigen_wrapper
