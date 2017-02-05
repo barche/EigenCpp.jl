@@ -41,7 +41,7 @@ namespace Eigen {
   * \endcode
   *
   * This class can be extended with the help of the plugin mechanism described on the page
-  * \ref TopicCustomizingEigen by defining the preprocessor symbol \c EIGEN_MATRIXBASE_PLUGIN.
+  * \ref TopicCustomizing_Plugins by defining the preprocessor symbol \c EIGEN_MATRIXBASE_PLUGIN.
   *
   * \sa \blank \ref TopicClassHierarchy
   */
@@ -66,7 +66,7 @@ template<typename Derived> class MatrixBase
     using Base::MaxSizeAtCompileTime;
     using Base::IsVectorAtCompileTime;
     using Base::Flags;
-    
+
     using Base::derived;
     using Base::const_cast_derived;
     using Base::rows;
@@ -80,8 +80,6 @@ template<typename Derived> class MatrixBase
     using Base::operator-=;
     using Base::operator*=;
     using Base::operator/=;
-    using Base::operator*;
-    using Base::operator/;
 
     typedef typename Base::CoeffReturnType CoeffReturnType;
     typedef typename Base::ConstTransposeReturnType ConstTransposeReturnType;
@@ -100,7 +98,7 @@ template<typename Derived> class MatrixBase
     /** \returns the size of the main diagonal, which is min(rows(),cols()).
       * \sa rows(), cols(), SizeAtCompileTime. */
     EIGEN_DEVICE_FUNC
-    inline Index diagonalSize() const { return (std::min)(rows(),cols()); }
+    inline Index diagonalSize() const { return (numext::mini)(rows(),cols()); }
 
     typedef typename Base::PlainObject PlainObject;
 
@@ -123,6 +121,7 @@ template<typename Derived> class MatrixBase
 #endif // not EIGEN_PARSED_BY_DOXYGEN
 
 #define EIGEN_CURRENT_STORAGE_BASE_CLASS Eigen::MatrixBase
+#define EIGEN_DOC_UNARY_ADDONS(X,Y)
 #   include "../plugins/CommonCwiseUnaryOps.h"
 #   include "../plugins/CommonCwiseBinaryOps.h"
 #   include "../plugins/MatrixCwiseUnaryOps.h"
@@ -131,6 +130,7 @@ template<typename Derived> class MatrixBase
 #     include EIGEN_MATRIXBASE_PLUGIN
 #   endif
 #undef EIGEN_CURRENT_STORAGE_BASE_CLASS
+#undef EIGEN_DOC_UNARY_ADDONS
 
     /** Special case of the template operator=, in order to prevent the compiler
       * from generating a default operator= (issue hit with g++ 4.1)
@@ -175,7 +175,7 @@ template<typename Derived> class MatrixBase
 #endif
 
     template<typename OtherDerived>
-    EIGEN_DEVICE_FUNC 
+    EIGEN_DEVICE_FUNC
     const Product<Derived,OtherDerived,LazyProduct>
     lazyProduct(const MatrixBase<OtherDerived> &other) const;
 
@@ -195,7 +195,7 @@ template<typename Derived> class MatrixBase
 
     template<typename OtherDerived>
     EIGEN_DEVICE_FUNC
-    typename internal::scalar_product_traits<typename internal::traits<Derived>::Scalar,typename internal::traits<OtherDerived>::Scalar>::ReturnType
+    typename ScalarBinaryOpTraits<typename internal::traits<Derived>::Scalar,typename internal::traits<OtherDerived>::Scalar>::ReturnType
     dot(const MatrixBase<OtherDerived>& other) const;
 
     EIGEN_DEVICE_FUNC RealScalar squaredNorm() const;
@@ -214,7 +214,7 @@ template<typename Derived> class MatrixBase
     typedef Diagonal<Derived> DiagonalReturnType;
     EIGEN_DEVICE_FUNC
     DiagonalReturnType diagonal();
-    
+
     typedef typename internal::add_const<Diagonal<const Derived> >::type ConstDiagonalReturnType;
     EIGEN_DEVICE_FUNC
     ConstDiagonalReturnType diagonal() const;
@@ -222,14 +222,14 @@ template<typename Derived> class MatrixBase
     template<int Index> struct DiagonalIndexReturnType { typedef Diagonal<Derived,Index> Type; };
     template<int Index> struct ConstDiagonalIndexReturnType { typedef const Diagonal<const Derived,Index> Type; };
 
-    template<int Index> 
+    template<int Index>
     EIGEN_DEVICE_FUNC
     typename DiagonalIndexReturnType<Index>::Type diagonal();
 
     template<int Index>
     EIGEN_DEVICE_FUNC
     typename ConstDiagonalIndexReturnType<Index>::Type diagonal() const;
-    
+
     typedef Diagonal<Derived,DynamicIndex> DiagonalDynamicIndexReturnType;
     typedef typename internal::add_const<Diagonal<const Derived,DynamicIndex> >::type ConstDiagonalDynamicIndexReturnType;
 
@@ -251,7 +251,7 @@ template<typename Derived> class MatrixBase
     template<unsigned int UpLo> struct SelfAdjointViewReturnType { typedef SelfAdjointView<Derived, UpLo> Type; };
     template<unsigned int UpLo> struct ConstSelfAdjointViewReturnType { typedef const SelfAdjointView<const Derived, UpLo> Type; };
 
-    template<unsigned int UpLo> 
+    template<unsigned int UpLo>
     EIGEN_DEVICE_FUNC
     typename SelfAdjointViewReturnType<UpLo>::Type selfadjointView();
     template<unsigned int UpLo>
@@ -330,17 +330,13 @@ template<typename Derived> class MatrixBase
 
 /////////// LU module ///////////
 
-    EIGEN_DEVICE_FUNC
     inline const FullPivLU<PlainObject> fullPivLu() const;
-    EIGEN_DEVICE_FUNC
     inline const PartialPivLU<PlainObject> partialPivLu() const;
 
-    EIGEN_DEVICE_FUNC
     inline const PartialPivLU<PlainObject> lu() const;
 
-    EIGEN_DEVICE_FUNC
     inline const Inverse<Derived> inverse() const;
-    
+
     template<typename ResultType>
     inline void computeInverseAndDetWithCheck(
       ResultType& inverse,
@@ -366,6 +362,7 @@ template<typename Derived> class MatrixBase
     inline const HouseholderQR<PlainObject> householderQr() const;
     inline const ColPivHouseholderQR<PlainObject> colPivHouseholderQr() const;
     inline const FullPivHouseholderQR<PlainObject> fullPivHouseholderQr() const;
+    inline const CompleteOrthogonalDecomposition<PlainObject> completeOrthogonalDecomposition() const;
 
 /////////// Eigenvalues module ///////////
 
@@ -382,7 +379,7 @@ template<typename Derived> class MatrixBase
     #ifndef EIGEN_PARSED_BY_DOXYGEN
     /// \internal helper struct to form the return type of the cross product
     template<typename OtherDerived> struct cross_product_return_type {
-      typedef typename internal::scalar_product_traits<typename internal::traits<Derived>::Scalar,typename internal::traits<OtherDerived>::Scalar>::ReturnType Scalar;
+      typedef typename ScalarBinaryOpTraits<typename internal::traits<Derived>::Scalar,typename internal::traits<OtherDerived>::Scalar>::ReturnType Scalar;
       typedef Matrix<Scalar,MatrixBase::RowsAtCompileTime,MatrixBase::ColsAtCompileTime> type;
     };
     #endif // EIGEN_PARSED_BY_DOXYGEN
@@ -394,32 +391,32 @@ template<typename Derived> class MatrixBase
     inline PlainObject
 #endif
     cross(const MatrixBase<OtherDerived>& other) const;
-    
+
     template<typename OtherDerived>
     EIGEN_DEVICE_FUNC
     inline PlainObject cross3(const MatrixBase<OtherDerived>& other) const;
-    
+
     EIGEN_DEVICE_FUNC
     inline PlainObject unitOrthogonal(void) const;
-    
+
+    EIGEN_DEVICE_FUNC
     inline Matrix<Scalar,3,1> eulerAngles(Index a0, Index a1, Index a2) const;
-    
-    inline ScalarMultipleReturnType operator*(const UniformScaling<Scalar>& s) const;
+
     // put this as separate enum value to work around possible GCC 4.3 bug (?)
     enum { HomogeneousReturnTypeDirection = ColsAtCompileTime==1&&RowsAtCompileTime==1 ? ((internal::traits<Derived>::Flags&RowMajorBit)==RowMajorBit ? Horizontal : Vertical)
                                           : ColsAtCompileTime==1 ? Vertical : Horizontal };
     typedef Homogeneous<Derived, HomogeneousReturnTypeDirection> HomogeneousReturnType;
+    EIGEN_DEVICE_FUNC
     inline HomogeneousReturnType homogeneous() const;
-    
+
     enum {
       SizeMinusOne = SizeAtCompileTime==Dynamic ? Dynamic : SizeAtCompileTime-1
     };
     typedef Block<const Derived,
                   internal::traits<Derived>::ColsAtCompileTime==1 ? SizeMinusOne : 1,
                   internal::traits<Derived>::ColsAtCompileTime==1 ? 1 : SizeMinusOne> ConstStartMinusOne;
-    typedef CwiseUnaryOp<internal::scalar_quotient1_op<typename internal::traits<Derived>::Scalar>,
-                const ConstStartMinusOne > HNormalizedReturnType;
-
+    typedef EIGEN_EXPR_BINARYOP_SCALAR_RETURN_TYPE(ConstStartMinusOne,Scalar,quotient) HNormalizedReturnType;
+    EIGEN_DEVICE_FUNC
     inline const HNormalizedReturnType hnormalized() const;
 
 ////////// Householder module ///////////

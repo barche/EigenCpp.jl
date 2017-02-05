@@ -19,7 +19,7 @@ end
 function matvec_julia!(mats::Vector{Matrix{Float64}}, vecs::Vector{Vector{Float64}}, result::Vector{Vector{Float64}})
     for i in 1:length(mats)
         #result[i] += mats[i]*vecs[i]
-        LinAlg.BLAS.gemv!('N', 1., mats[i], vecs[i], 1., result[i])
+        @inbounds LinAlg.BLAS.gemv!('N', 1., mats[i], vecs[i], 1., result[i])
     end
 end
 

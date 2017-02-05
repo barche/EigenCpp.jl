@@ -62,7 +62,8 @@ struct default_packet_traits
     HasRsqrt  = 0,
     HasExp    = 0,
     HasLog    = 0,
-    HasLog10    = 0,
+    HasLog1p  = 0,
+    HasLog10  = 0,
     HasPow    = 0,
 
     HasSin    = 0,
@@ -71,13 +72,18 @@ struct default_packet_traits
     HasASin   = 0,
     HasACos   = 0,
     HasATan   = 0,
-    HasSinh    = 0,
-    HasCosh    = 0,
-    HasTanh    = 0,
+    HasSinh   = 0,
+    HasCosh   = 0,
+    HasTanh   = 0,
     HasLGamma = 0,
     HasDiGamma = 0,
+    HasZeta = 0,
+    HasPolygamma = 0,
     HasErf = 0,
     HasErfc = 0,
+    HasIGamma = 0,
+    HasIGammac = 0,
+    HasBetaInc = 0,
 
     HasRound  = 0,
     HasFloor  = 0,
@@ -134,6 +140,11 @@ pcast(const SrcPacket& a, const SrcPacket& /*b*/) {
   return static_cast<TgtPacket>(a);
 }
 
+template <typename SrcPacket, typename TgtPacket>
+EIGEN_DEVICE_FUNC inline TgtPacket
+pcast(const SrcPacket& a, const SrcPacket& /*b*/, const SrcPacket& /*c*/, const SrcPacket& /*d*/) {
+  return static_cast<TgtPacket>(a);
+}
 
 /** \internal \returns a + b (coeff-wise) */
 template<typename Packet> EIGEN_DEVICE_FUNC inline Packet
@@ -295,7 +306,7 @@ template<typename Scalar> EIGEN_DEVICE_FUNC inline void prefetch(const Scalar* a
   // 32-bit pointer operand constraint for inlined asm
   asm(" prefetch.L1 [ %1 ];" : "=r"(addr) : "r"(addr));
 #endif
-#elif !EIGEN_COMP_MSVC
+#elif (!EIGEN_COMP_MSVC) && (EIGEN_COMP_GNUC || EIGEN_COMP_CLANG || EIGEN_COMP_ICC)
   __builtin_prefetch(addr);
 #endif
 }
@@ -318,7 +329,7 @@ template<typename Packet> EIGEN_DEVICE_FUNC inline typename unpacket_traits<Pack
   */
 template<typename Packet> EIGEN_DEVICE_FUNC inline
 typename conditional<(unpacket_traits<Packet>::size%8)==0,typename unpacket_traits<Packet>::half,Packet>::type
-predux4(const Packet& a)
+predux_downto4(const Packet& a)
 { return a; }
 
 /** \internal \returns the product of the elements of \a a*/
@@ -336,22 +347,6 @@ template<typename Packet> EIGEN_DEVICE_FUNC inline typename unpacket_traits<Pack
 /** \internal \returns the reversed elements of \a a*/
 template<typename Packet> EIGEN_DEVICE_FUNC inline Packet preverse(const Packet& a)
 { return a; }
-
-template<size_t offset, typename Packet>
-struct protate_impl
-{
-  // Empty so attempts to use this unimplemented path will fail to compile.
-  // Only specializations of this template should be used.
-};
-
-/** \internal \returns a packet with the coefficients rotated to the right in little-endian convention,
-  * by the given offset, e.g. for offset == 1:
-  *     (packet[3], packet[2], packet[1], packet[0]) becomes (packet[0], packet[3], packet[2], packet[1])
-  */
-template<size_t offset, typename Packet> EIGEN_DEVICE_FUNC inline Packet protate(const Packet& a)
-{
-  return offset ? protate_impl<offset, Packet>::run(a) : a;
-}
 
 /** \internal \returns \a a with real and imaginary part flipped (for complex type only) */
 template<typename Packet> EIGEN_DEVICE_FUNC inline Packet pcplxflip(const Packet& a)
@@ -410,6 +405,10 @@ Packet pexp(const Packet& a) { using std::exp; return exp(a); }
 template<typename Packet> EIGEN_DECLARE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
 Packet plog(const Packet& a) { using std::log; return log(a); }
 
+/** \internal \returns the log1p of \a a (coeff-wise) */
+template<typename Packet> EIGEN_DECLARE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
+Packet plog1p(const Packet& a) { return numext::log1p(a); }
+
 /** \internal \returns the log10 of \a a (coeff-wise) */
 template<typename Packet> EIGEN_DECLARE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
 Packet plog10(const Packet& a) { using std::log10; return log10(a); }
@@ -435,22 +434,6 @@ Packet pfloor(const Packet& a) { using numext::floor; return floor(a); }
 /** \internal \returns the ceil of \a a (coeff-wise) */
 template<typename Packet> EIGEN_DECLARE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
 Packet pceil(const Packet& a) { using numext::ceil; return ceil(a); }
-
-/** \internal \returns the ln(|gamma(\a a)|) (coeff-wise) */
-template<typename Packet> EIGEN_DECLARE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
-Packet plgamma(const Packet& a) { using numext::lgamma; return lgamma(a); }
-
-/** \internal \returns the derivative of lgamma, psi(\a a) (coeff-wise) */
-template<typename Packet> EIGEN_DECLARE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
-Packet pdigamma(const Packet& a) { using numext::digamma; return digamma(a); }
-
-/** \internal \returns the erf(\a a) (coeff-wise) */
-template<typename Packet> EIGEN_DECLARE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
-Packet perf(const Packet& a) { using numext::erf; return erf(a); }
-
-/** \internal \returns the erfc(\a a) (coeff-wise) */
-template<typename Packet> EIGEN_DECLARE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
-Packet perfc(const Packet& a) { using numext::erfc; return erfc(a); }
 
 /***************************************************************************
 * The following functions might not have to be overwritten for vectorized types
@@ -573,6 +556,34 @@ template <size_t N> struct Selector {
 template<typename Packet> EIGEN_DEVICE_FUNC inline Packet
 pblend(const Selector<unpacket_traits<Packet>::size>& ifPacket, const Packet& thenPacket, const Packet& elsePacket) {
   return ifPacket.select[0] ? thenPacket : elsePacket;
+}
+
+/** \internal \returns \a a with the first coefficient replaced by the scalar b */
+template<typename Packet> EIGEN_DEVICE_FUNC inline Packet
+pinsertfirst(const Packet& a, typename unpacket_traits<Packet>::type b)
+{
+  // Default implementation based on pblend.
+  // It must be specialized for higher performance.
+  Selector<unpacket_traits<Packet>::size> mask;
+  mask.select[0] = true;
+  // This for loop should be optimized away by the compiler.
+  for(Index i=1; i<unpacket_traits<Packet>::size; ++i)
+    mask.select[i] = false;
+  return pblend(mask, pset1<Packet>(b), a);
+}
+
+/** \internal \returns \a a with the last coefficient replaced by the scalar b */
+template<typename Packet> EIGEN_DEVICE_FUNC inline Packet
+pinsertlast(const Packet& a, typename unpacket_traits<Packet>::type b)
+{
+  // Default implementation based on pblend.
+  // It must be specialized for higher performance.
+  Selector<unpacket_traits<Packet>::size> mask;
+  // This for loop should be optimized away by the compiler.
+  for(Index i=0; i<unpacket_traits<Packet>::size-1; ++i)
+    mask.select[i] = false;
+  mask.select[unpacket_traits<Packet>::size-1] = true;
+  return pblend(mask, pset1<Packet>(b), a);
 }
 
 } // end namespace internal

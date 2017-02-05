@@ -1,5 +1,9 @@
-using BinDeps
-@BinDeps.load_dependencies
+using CxxWrap
 
-using CppWrapper
-wrap_modules(joinpath(Pkg.dir("EigenCpp"),"deps","usr","lib","libeigen_wrapper"))
+const depsfile = joinpath(dirname(dirname(@__FILE__)), "deps", "deps.jl")
+if !isfile(depsfile)
+  error("$depsfile not found, package Trilinos did not build properly")
+end
+include(depsfile)
+
+wrap_modules(_l_eigen_wrap)
