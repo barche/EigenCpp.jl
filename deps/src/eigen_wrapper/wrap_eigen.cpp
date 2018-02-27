@@ -1,7 +1,7 @@
-#include <cxx_wrap.hpp>
+#include <jlcxx/jlcxx.hpp>
 #include <Eigen/Dense>
 
-namespace cxx_wrap
+namespace jlcxx
 {
   // Match the Eigen Matrix type, skipping the default parameters
   template<typename ScalarT, int Rows, int Cols>
@@ -13,7 +13,7 @@ namespace cxx_wrap
 }
 
 JULIA_CPP_MODULE_BEGIN(registry)
-  using namespace cxx_wrap;
+  using namespace jlcxx;
 
   Module& types = registry.create_module("EigenCpp");
 
