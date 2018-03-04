@@ -4,9 +4,9 @@ using Base.Test
 const rows = 4
 const nb_elems = 1000000
 
-julia_matrices = Array(Matrix{Float64}, (nb_elems,));
-julia_vectors = Array(Vector{Float64}, (nb_elems,));
-julia_results = Array(Vector{Float64}, (nb_elems,));
+julia_matrices = Array{Matrix{Float64}}((nb_elems,));
+julia_vectors = Array{Vector{Float64}}((nb_elems,));
+julia_results = Array{Vector{Float64}}((nb_elems,));
 
 function init_julia!(mats::Vector{Matrix{Float64}}, vecs::Vector{Vector{Float64}}, result::Vector{Vector{Float64}})
   for i in 1:nb_elems
@@ -41,12 +41,12 @@ println("Julia matvec timings:")
 println("Julia check time:")
 @time @test check_result(julia_results)
 
-typealias EigenMat EigenCpp.Matrix{Float64,rows,rows}
-typealias EigenVec EigenCpp.Matrix{Float64,rows,1}
+const EigenMat = EigenCpp.Matrix{Float64,rows,rows}
+const EigenVec = EigenCpp.Matrix{Float64,rows,1}
 
-eigen_matrices = Array(EigenMat, (nb_elems,));
-eigen_vectors = Array(EigenVec, (nb_elems,));
-eigen_results = Array(EigenVec, (nb_elems,));
+eigen_matrices = Array{EigenMat}((nb_elems,));
+eigen_vectors = Array{EigenVec}((nb_elems,));
+eigen_results = Array{EigenVec}((nb_elems,));
 
 function init_eigen!(mats::Vector{EigenMat}, vecs::Vector{EigenVec}, result::Vector{EigenVec})
   for i in 1:nb_elems

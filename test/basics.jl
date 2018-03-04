@@ -3,7 +3,7 @@ using Base.Test
 
 
 m1 = EigenCpp.Matrix{Float64,4,2}()
-jm1 = Matrix(m1) # converted to Julia
+jm1 = Matrix{Float64}(m1) # converted to Julia
 EigenCpp.setConstant(m1, 10)
 m1[1,2] = 5.
 @test m1 == [10. 5.; 10. 10.; 10. 10.; 10. 10]
@@ -17,4 +17,4 @@ EigenCpp.print(m1)
 sumexpr = m1 + m1
 @test startswith(string(typeof(sumexpr)), "Sum")
 msum = EigenCpp.Matrix{Float64,4,2}(sumexpr)
-@test Matrix(msum) == [20. 10.; 20. 20.; 20. 20.; 20. 20]
+@test Matrix{Float64}(msum) == [20. 10.; 20. 20.; 20. 20.; 20. 20]

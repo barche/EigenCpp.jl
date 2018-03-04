@@ -37,7 +37,7 @@ JULIA_CPP_MODULE_BEGIN(registry)
       std::cout << eigen_mat << std::endl;
     });
 
-    types.method("convert", [](JuliaMatrix, WrappedT& eigen_mat)
+    types.method("convert", [](SingletonType<ArrayRef<ScalarT, 2>>, WrappedT& eigen_mat)
     {
       return ArrayRef<ScalarT, 2>(eigen_mat.data(), eigen_mat.rows(), eigen_mat.cols());
     });

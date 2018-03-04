@@ -3,11 +3,11 @@ using CxxWrap
 
 @BinDeps.setup
 
-cxx_wrap_dir = Pkg.dir("CxxWrap","deps","usr","lib","cmake")
+jlcxx_dir = joinpath(dirname(CxxWrap._l_jlcxx), "cmake", "JlCxx")
 
 eigen_wrapper = library_dependency("eigen_wrapper", aliases=["libeigen_wrapper"])
 
-cmake_prefix = ""
+cmake_prefix = jlcxx_dir
 
 prefix=joinpath(BinDeps.depsdir(eigen_wrapper),"usr")
 eigen_wrapper_srcdir = joinpath(BinDeps.depsdir(eigen_wrapper),"src","eigen_wrapper")
@@ -23,7 +23,7 @@ genopt = "Unix Makefiles"
 build_type = get(ENV, "CXXWRAP_BUILD_TYPE", "Release")
 
 eigen_steps = @build_steps begin
-	`cmake -G "$genopt" -DCMAKE_INSTALL_PREFIX="$prefix" -DCMAKE_BUILD_TYPE="$build_type" -DCMAKE_PREFIX_PATH="$cmake_prefix" -DCxxWrap_DIR="$cxx_wrap_dir" -DCMAKE_CXX_COMPILER=mpic++ -DCMAKE_C_COMPILER=mpicc $eigen_wrapper_srcdir`
+	`cmake -G "$genopt" -DCMAKE_INSTALL_PREFIX="$prefix" -DCMAKE_BUILD_TYPE="$build_type" -DCMAKE_PREFIX_PATH="$cmake_prefix" -DCMAKE_PROGRAM_PATH="$JULIA_HOME" $eigen_wrapper_srcdir`
 	`cmake --build . --config $build_type --target install $makeopts`
 end
 
