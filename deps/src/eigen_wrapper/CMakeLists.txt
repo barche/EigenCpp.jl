@@ -5,7 +5,6 @@ cmake_minimum_required(VERSION 3.1)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib;${JlCxx_DIR}/../")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -march=native")
-add_definitions(-DJULIA_ENABLE_THREADING)
 
 find_package(JlCxx)
 
